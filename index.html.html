@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>売上報告</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --navy: #1a3a5c;
+    --blue: #378add;
+    --teal: #1d9e75;
+    --red: #e24b4a;
+    --bg: #f2f4f7;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.12);
+    --text: #1a1a1a;
+    --text2: #666;
+    --text3: #999;
+  }
+  html, body { height: 100%; }
+  body { font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic', sans-serif; font-size: 16px; color: var(--text); background: var(--bg); max-width: 480px; margin: 0 auto; min-height: 100vh; }
+
+  .topbar { background: var(--navy); color: #fff; padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top)); display: flex; align-items: center; justify-content: space-between; }
+  .topbar-title { font-size: 17px; font-weight: 600; }
+  .topbar-icon { font-size: 22px; }
+
+  .container { padding: 16px; padding-bottom: 100px; }
+
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 6px; padding-left: 2px; }
+  label .required { color: var(--red); margin-left: 3px; }
+
+  input[type="date"], input[type="number"], input[type="text"], select {
+    width: 100%; padding: 13px 14px; font-size: 16px; border: 1px solid var(--border);
+    border-radius: 10px; background: var(--surface); color: var(--text);
+    font-family: inherit; outline: none; -webkit-appearance: none; appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--blue); }
+  select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 40px; }
+
+  .time-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .time-btn { padding: 12px 8px; font-size: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); text-align: center; cursor: pointer; user-select: none; }
+  .time-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); font-weight: 600; }
+
+  .number-input-wrap { position: relative; }
+  .number-suffix { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; pointer-events: none; }
+
+  .submit-btn { width: 100%; padding: 16px; font-size: 17px; font-weight: 700; background: var(--navy); color: #fff; border: none; border-radius: 12px; cursor: pointer; margin-top: 10px; font-family: inherit; }
+  .submit-btn:active { background: var(--blue); }
+  .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+  .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); padding: 12px 22px; border-radius: 24px; font-size: 14px; font-weight: 600; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, top 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; top: 80px; pointer-events: auto; }
+  .toast.success { background: var(--teal); color: #fff; }
+  .toast.error { background: var(--red); color: #fff; }
+
+  .recent-section { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .recent-title { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 10px; }
+  .recent-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; font-size: 13px; }
+  .recent-row1 { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .recent-shop { font-weight: 600; }
+  .recent-amount { color: var(--teal); font-weight: 700; }
+  .recent-row2 { color: var(--text3); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-title">📊 売上報告</span>
+  <span class="topbar-icon">📝</span>
+</div>
+
+<div class="container">
+
+  <div class="form-group">
+    <label>日付 <span class="required">*</span></label>
+    <input type="date" id="date" required />
+  </div>
+
+  <div class="form-group">
+    <label>集計時間 <span class="required">*</span></label>
+    <div class="time-grid">
+      <div class="time-btn" data-time="12:00">12:00</div>
+      <div class="time-btn" data-time="早遅交代">早遅交代</div>
+      <div class="time-btn" data-time="18:00">18:00</div>
+      <div class="time-btn" data-time="19:00">19:00</div>
+      <div class="time-btn" data-time="最終" style="grid-column: span 2;">最終</div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>店舗名 <span class="required">*</span></label>
+    <input type="text" id="shop" placeholder="例：〇〇店" autocomplete="off" />
+  </div>
+
+  <div class="form-group">
+    <label>催事名 <span class="required">*</span></label>
+    <select id="event">
+      <option value="">選択してください</option>
+      <option>北海道</option>
+      <option>九州</option>
+      <option>四国</option>
+      <option>沖縄</option>
+      <option>北海道九州</option>
+      <option>九州沖縄</option>
+      <option>北海道沖縄</option>
+      <option>四国九州</option>
+      <option>山陰山陽四国</option>
+      <option>全国</option>
+      <option>その他</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>客数 <span class="required">*</span></label>
+    <div class="number-input-wrap">
+      <input type="number" id="customers" inputmode="numeric" placeholder="0" min="0" />
+      <span class="number-suffix">人</span>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>売上（税抜） <span class="required">*</span></label>
+    <div class="number-input-wrap">
+      <input type="number" id="sales" inputmode="numeric" placeholder="0" min="0" />
+      <span class="number-suffix">円</span>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>販売員名 <span class="required">*</span></label>
+    <input type="text" id="staff" placeholder="例：山田太郎" autocomplete="off" />
+  </div>
+
+  <button class="submit-btn" id="submit-btn" onclick="submitForm()">送信する</button>
+
+  <div class="recent-section" id="recent-section" style="display:none;">
+    <div class="recent-title">📋 最近の送信履歴（このスマホ）</div>
+    <div id="recent-list"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxDAzVd1zNOSqy99Z6W9TZG9EPYzmeuhU8VWty9ui61EVKP0SexPymvzJLflCXLgCkD/exec';
+
+// 日付を今日に
+const today = new Date();
+const yyyy = today.getFullYear();
+const mm = String(today.getMonth() + 1).padStart(2, '0');
+const dd = String(today.getDate()).padStart(2, '0');
+document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+
+// 集計時間ボタン
+let selectedTime = '';
+document.querySelectorAll('.time-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedTime = btn.dataset.time;
+  });
+});
+
+// 販売員名・店舗名は前回の値を保存（このスマホだけ）
+const savedStaff = localStorage.getItem('staff');
+const savedShop = localStorage.getItem('shop');
+if (savedStaff) document.getElementById('staff').value = savedStaff;
+if (savedShop) document.getElementById('shop').value = savedShop;
+
+// 履歴を表示
+function loadHistory() {
+  const list = JSON.parse(localStorage.getItem('history') || '[]');
+  if (list.length === 0) return;
+  const section = document.getElementById('recent-section');
+  const listEl = document.getElementById('recent-list');
+  section.style.display = 'block';
+  listEl.innerHTML = list.slice(0, 5).map(item => `
+    <div class="recent-item">
+      <div class="recent-row1">
+        <span class="recent-shop">${escapeHtml(item.shop)} - ${escapeHtml(item.event)}</span>
+        <span class="recent-amount">¥${Number(item.sales).toLocaleString()}</span>
+      </div>
+      <div class="recent-row2">${item.date} ${item.time} · 客数 ${item.customers}人 · ${escapeHtml(item.staff)}</div>
+    </div>
+  `).join('');
+}
+loadHistory();
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showToast(msg, type) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast show ' + type;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+async function submitForm() {
+  const date = document.getElementById('date').value;
+  const time = selectedTime;
+  const shop = document.getElementById('shop').value.trim();
+  const event = document.getElementById('event').value;
+  const customers = document.getElementById('customers').value;
+  const sales = document.getElementById('sales').value;
+  const staff = document.getElementById('staff').value.trim();
+
+  // バリデーション
+  if (!date) return showToast('日付を入力してください', 'error');
+  if (!time) return showToast('集計時間を選択してください', 'error');
+  if (!shop) return showToast('店舗名を入力してください', 'error');
+  if (!event) return showToast('催事名を選択してください', 'error');
+  if (!customers) return showToast('客数を入力してください', 'error');
+  if (!sales) return showToast('売上を入力してください', 'error');
+  if (!staff) return showToast('販売員名を入力してください', 'error');
+
+  const data = { date, time, shop, event, customers, sales, staff };
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  try {
+    // Apps ScriptはCORSの関係で text/plain で送る
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(data)
+    });
+
+    // 成功時の処理（no-corsだとレスポンスが読めないので楽観的に成功扱い）
+    showToast('✓ 送信しました', 'success');
+
+    // 名前と店舗を保存
+    localStorage.setItem('staff', staff);
+    localStorage.setItem('shop', shop);
+
+    // 履歴に追加
+    const history = JSON.parse(localStorage.getItem('history') || '[]');
+    history.unshift(data);
+    localStorage.setItem('history', JSON.stringify(history.slice(0, 20)));
+    loadHistory();
+
+    // フォームをリセット（名前・店舗・日付以外）
+    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+    selectedTime = '';
+    document.getElementById('event').value = '';
+    document.getElementById('customers').value = '';
+    document.getElementById('sales').value = '';
+
+  } catch(e) {
+    showToast('エラー: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '送信する';
+  }
+}
+</script>
+</body>
+</html>
